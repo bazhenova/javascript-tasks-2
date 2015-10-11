@@ -9,6 +9,7 @@ phoneBook.add('Олег', '+7 (999) 777-7-777', 'just7@yandex-team.ru');
 
 // Невалидные данные не должны попадать в книгу!
 phoneBook.add('Честный Хрюндель', 'invalid phone', 'honest-hrundel');
+phoneBook.add('Олег', '+7 (111 777-2-222', 'just7@yandex-team.ru');
 
 phoneBook.find('777');
 // Выводит построчно записи, все поля через запятую:
