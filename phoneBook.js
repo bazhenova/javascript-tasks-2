@@ -1,7 +1,8 @@
 'use strict';
 
 var phoneBook = []; // Здесь вы храните записи как хотите -> хочу лист словарей ^^
-
+var max_name_length = 5; // для вывода
+var max_email_length = 7;
 /*
    Функция добавления записи в телефонную книгу.
    На вход может прийти что угодно, будьте осторожны.
@@ -14,22 +15,33 @@ module.exports.add = function add(name, phone, email) {
             email: email
         };
         phoneBook.push(contact);
+        if (email.length > max_email_length) {
+            max_email_length = email.length;
+        }
+        if (name.length > max_name_length) {
+            max_name_length = name.length;
+        }
         return true;
     }
     return false;
 };
 
 function isNameCorrect(name) {
-    var reg = /^[a-z0-9а-я\s]+$/i;
-    return reg.test(name);
+    return (name !== 'undefined' && name.length > 0);
 }
 
 function isEmailCorrect(email) {
-    var reg = /^[-(\w|а-я).]+@([a-z0-9а-я]+[-а-яa-z0-9]+\.)+[а-яa-z0-9]{2,4}$/i;
+    if (typeof email !== 'string' || email.length === 0) {
+        return false;
+    }
+    var reg = /^[^@]+@[^@]+(\.[^@]+)+$/i;
     return reg.test(email);
 }
 
 function isPhoneCorrect(phone) {
+    if (typeof phone !== 'string' || phone.length === 0) {
+        return false;
+    }
     var reg = /^(\+?\d{1,2}\s*)?(\(\d{3}\)|\d{3})+\s*\d{3}(\s*|\-)?\d(\s*|\-)?\d{3}$/;
     return reg.test(phone);
 }
@@ -47,7 +59,7 @@ module.exports.find = function find(query) {
             var keys = Object.keys(record);
             for (var j = 0; j < keys.length; j++) {
                 var lowerRecord = record[keys[j]].toLowerCase();
-                if (lowerRecord.indexOf(query) != -1) {
+                if (lowerRecord.indexOf(query) !== -1) {
                     records.push(record);
                     break;
                 }
@@ -63,11 +75,7 @@ module.exports.find = function find(query) {
 };
 
 function getRecord(record) {
-    var info = '';
-    var keys = Object.keys(record);
-    for (var i = 0; i < keys.length; i++) {
-        info += record[keys[i]] + ', ';
-    }
+    var info = record.name + ', ' + record.phone + ', ' + record.email;
     return info;
 }
 /*
@@ -104,7 +112,7 @@ function getIndices(records) {
 module.exports.importFromCsv = function importFromCsv(filename) {
     var data = require('fs').readFileSync(filename, 'utf-8');
     var count = 0;
-    var records = data.split('\r\n');
+    var records = data.split('(\r\n|\n)');
     for (var i in records) {
         var record = records[i].split(';');
         if (module.exports.add(record[0], record[1], record[2])) {
@@ -119,21 +127,21 @@ module.exports.importFromCsv = function importFromCsv(filename) {
    Функция вывода всех телефонов в виде ASCII (задача со звёздочкой!).
 */
 module.exports.showTable = function showTable() {
-    console.log('┌─────────────┬────────────────────╥──────────────────┐');
-    console.log('│ Имя         │ Телефон            ║ email            │');
+    var borders = createBorders();
+    console.log(borders[0] + '\n' + borders[1]);
     for (var i = 0; i < phoneBook.length; i++) {
-        console.log('├─────────────┼────────────────────╫──────────────────┤');
+        console.log(borders[2]);
         var record = createBetter(phoneBook[i]);
         console.log('│' + record[0] + '│' + record[1] + '║' + record[2] + '│');
     }
-    console.log('└─────────────┴────────────────────╨──────────────────┘' + '\n');
+    console.log(borders[3]);
 };
 
 function createBetter(record) {
     var newRecord = [];
-    if (record.name.length < 13) {
+    if (record.name.length < max_name_length) {
         var newName = record.name;
-        for (var i = 0; i < 13 - record.name.length; i++) {
+        for (var i = 0; i < max_name_length - record.name.length; i++) {
             newName += ' ';
         }
         newRecord.push(newName);
@@ -141,9 +149,9 @@ function createBetter(record) {
         newRecord.push(record.name);
     }
     newRecord.push(updatePhone(record.phone));
-    if (record.email.length < 18) {
+    if (record.email.length < max_email_length) {
         var newEmail = record.email;
-        for (var i = 0; i < 18 - record.email.length; i++) {
+        for (var i = 0; i < max_email_length - record.email.length; i++) {
             newEmail += ' ';
         }
         newRecord.push(newEmail);
@@ -153,28 +161,42 @@ function createBetter(record) {
     return newRecord;
 }
 
+function createBorders() {
+    var borders = [];
+    var first = '┌─────';
+    var second = '│ Имя ';
+    var last = '└─────';
+    var between = '├─────';
+    for (var i = 0; i < max_name_length - 5; i++) {
+        first += '─';
+        second += ' ';
+        between += '─';
+        last += '─';
+    }
+    first += '┬────────────────────╥───────';
+    second += '│ Телефон            ║ email ';
+    between += '┼────────────────────╫───────';
+    last += '┴────────────────────╨───────';
+    for (var j = 0; j < max_email_length - 7; j++) {
+        first += '─';
+        second += ' ';
+        between += '─';
+        last += '─';
+    }
+    first += '┐';
+    second += '│';
+    between += '┤';
+    last += '┘';
+    borders.push(first);
+    borders.push(second);
+    borders.push(between);
+    borders.push(last);
+    return borders;
+}
+
 function updatePhone(phone) {
-    var re = /\d{1}/g;
-    var newPhone = '';
-    var count = 0;
-    phone = phone.match(re).join('');
-    for (var i = phone.length - 1; i >= 0; i--) {
-        newPhone += phone[i];
-        count++;
-        if (count === 3 || count === 4) {
-            newPhone += '-';
-        }
-        if (count === 7) {
-            newPhone += ' )';
-        }
-        if (count === 10) {
-            newPhone += '( ';
-        }
-    }
-    if (newPhone.length === 16) {
-        newPhone += '7';
-    }
-    newPhone += '+';
-    newPhone = newPhone.split('').reverse().join('');
-    return newPhone + '  ';
+    phone = phone.replace(/[^\d]+/g, '');
+    var formatted = '+' + (phone.slice(0, -10) || 7) + ' ' +
+    phone.slice(-10).replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '($1) $2-$3-$4');
+    return formatted + '  ';
 }
