@@ -1,8 +1,8 @@
 'use strict';
 
 var phoneBook = []; // Здесь вы храните записи как хотите -> хочу лист словарей ^^
-var max_name_length = 5; // для вывода
-var max_email_length = 7;
+var maxNameLength = 5; // для вывода
+var maxEmailLength = 7;
 /*
    Функция добавления записи в телефонную книгу.
    На вход может прийти что угодно, будьте осторожны.
@@ -15,11 +15,11 @@ module.exports.add = function add(name, phone, email) {
             email: email
         };
         phoneBook.push(contact);
-        if (email.length > max_email_length) {
-            max_email_length = email.length;
+        if (email.length > maxEmailLength) {
+            maxEmailLength = email.length;
         }
-        if (name.length > max_name_length) {
-            max_name_length = name.length;
+        if (name.length > maxNameLength) {
+            maxNameLength = name.length;
         }
         return true;
     }
@@ -27,23 +27,17 @@ module.exports.add = function add(name, phone, email) {
 };
 
 function isNameCorrect(name) {
-    return (name !== 'undefined' && name.length > 0);
+    return (name || false) && typeof name === 'string';
 }
 
 function isEmailCorrect(email) {
-    if (typeof email !== 'string' || email.length === 0) {
-        return false;
-    }
     var reg = /^[^@]+@[^@]+(\.[^@]+)+$/i;
-    return reg.test(email);
+    return typeof email === 'string' && email.length > 0 && reg.test(email);
 }
 
 function isPhoneCorrect(phone) {
-    if (typeof phone !== 'string' || phone.length === 0) {
-        return false;
-    }
     var reg = /^(\+?\d{1,2}\s*)?(\(\d{3}\)|\d{3})+\s*\d{3}(\s*|\-)?\d(\s*|\-)?\d{3}$/;
-    return reg.test(phone);
+    return typeof phone === 'string' && phone.length > 0 && reg.test(phone);
 }
 
 /*
@@ -75,8 +69,7 @@ module.exports.find = function find(query) {
 };
 
 function getRecord(record) {
-    var info = record.name + ', ' + record.phone + ', ' + record.email;
-    return info;
+    return record.name + ', ' + record.phone + ', ' + record.email;
 }
 /*
    Функция удаления записи в телефонной книге.
@@ -112,9 +105,10 @@ function getIndices(records) {
 module.exports.importFromCsv = function importFromCsv(filename) {
     var data = require('fs').readFileSync(filename, 'utf-8');
     var count = 0;
-    var records = data.split('(\r\n|\n)');
-    for (var i in records) {
+    var records = data.split('\r\n');
+    for (var i = 0; i < records.length; i++) {
         var record = records[i].split(';');
+        console.log(record);
         if (module.exports.add(record[0], record[1], record[2])) {
             count++;
         }
@@ -132,33 +126,28 @@ module.exports.showTable = function showTable() {
     for (var i = 0; i < phoneBook.length; i++) {
         console.log(borders[2]);
         var record = createBetter(phoneBook[i]);
-        console.log('│' + record[0] + '│' + record[1] + '║' + record[2] + '│');
+        console.log('│' + record[0] + '│' + record[1] + '  ║' + record[2] + '│');
     }
     console.log(borders[3]);
 };
 
 function createBetter(record) {
     var newRecord = [];
-    if (record.name.length < max_name_length) {
-        var newName = record.name;
-        for (var i = 0; i < max_name_length - record.name.length; i++) {
-            newName += ' ';
-        }
-        newRecord.push(newName);
-    } else {
-        newRecord.push(record.name);
-    }
+    newRecord.push(padString(record.name, maxNameLength));
     newRecord.push(updatePhone(record.phone));
-    if (record.email.length < max_email_length) {
-        var newEmail = record.email;
-        for (var i = 0; i < max_email_length - record.email.length; i++) {
-            newEmail += ' ';
-        }
-        newRecord.push(newEmail);
-    } else {
-        newRecord.push(record.email);
-    }
+    newRecord.push(padString(record.email, maxEmailLength));
     return newRecord;
+}
+
+function padString(string, length) {
+    if (string.length < length) {
+        var newString = string;
+        for (var i = 0; i < length - string.length; i++) {
+            newString += ' ';
+        }
+        return newString;
+    }
+    return string;
 }
 
 function createBorders() {
@@ -167,7 +156,7 @@ function createBorders() {
     var second = '│ Имя ';
     var last = '└─────';
     var between = '├─────';
-    for (var i = 0; i < max_name_length - 5; i++) {
+    for (var i = 0; i < maxNameLength - 5; i++) {
         first += '─';
         second += ' ';
         between += '─';
@@ -177,7 +166,7 @@ function createBorders() {
     second += '│ Телефон            ║ email ';
     between += '┼────────────────────╫───────';
     last += '┴────────────────────╨───────';
-    for (var j = 0; j < max_email_length - 7; j++) {
+    for (var j = 0; j < maxEmailLength - 7; j++) {
         first += '─';
         second += ' ';
         between += '─';
@@ -198,5 +187,5 @@ function updatePhone(phone) {
     phone = phone.replace(/[^\d]+/g, '');
     var formatted = '+' + (phone.slice(0, -10) || 7) + ' ' +
     phone.slice(-10).replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '($1) $2-$3-$4');
-    return formatted + '  ';
+    return formatted;
 }
